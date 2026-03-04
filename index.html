@@ -4,10 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#f7eef3" />
-  <title>Цитата дня</title>
+  <title>Цитаты с авторами</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg1: #fff7fb;
+      --bg1: #fff8fb;
       --bg2: #f7eef7;
       --card: rgba(255,255,255,0.82);
       --text: #2f2430;
@@ -16,10 +19,9 @@
       --accent2: #b84575;
       --shadow: 0 14px 35px rgba(110, 65, 92, 0.16);
       --radius: 22px;
-      --quote-font: Georgia, 'Times New Roman', serif;
-      --ui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+      --quote-font: 'Lora', Georgia, 'Times New Roman', serif;
+      --ui-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
-
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
@@ -35,7 +37,6 @@
       align-items: stretch;
       padding: max(14px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
     }
-
     .app {
       width: 100%;
       max-width: 540px;
@@ -43,7 +44,6 @@
       flex-direction: column;
       gap: 14px;
     }
-
     .card {
       background: var(--card);
       backdrop-filter: blur(8px);
@@ -52,13 +52,11 @@
       border: 1px solid rgba(255,255,255,0.7);
       padding: 16px;
     }
-
     .preview-wrap {
       display: flex;
       justify-content: center;
       align-items: center;
     }
-
     .preview-canvas {
       width: 100%;
       height: auto;
@@ -67,13 +65,11 @@
       background: #fff;
       box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
     }
-
     .controls {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
-
     button {
       appearance: none;
       border: none;
@@ -87,35 +83,10 @@
     }
     button:active { transform: translateY(1px) scale(0.995); }
     button:disabled { opacity: .55; cursor: wait; }
-
-    .btn-primary {
-      color: white;
-      background: linear-gradient(180deg, var(--accent), var(--accent2));
-    }
-    .btn-secondary {
-      color: var(--text);
-      background: rgba(255,255,255,0.88);
-      border: 1px solid rgba(0,0,0,0.06);
-    }
-
-    .status {
-      margin: 0;
-      font-size: 13px;
-      color: var(--muted);
-      min-height: 1.2em;
-      text-align: center;
-    }
-
-    .hint {
-      margin: 0;
-      font-size: 12px;
-      color: var(--muted);
-      line-height: 1.4;
-      text-align: center;
-    }
-
-    .hidden-assets { display: none; }
-
+    .btn-primary { color: white; background: linear-gradient(180deg, var(--accent), var(--accent2)); }
+    .btn-secondary { color: var(--text); background: rgba(255,255,255,0.88); border: 1px solid rgba(0,0,0,0.06); }
+    .status { margin: 0; font-size: 13px; color: var(--muted); min-height: 1.2em; text-align: center; }
+    .hint { margin: 0; font-size: 12px; color: var(--muted); line-height: 1.45; text-align: center; }
     @media (max-width: 360px) {
       .card { padding: 12px; }
       button { font-size: 14px; padding: 11px 12px; }
@@ -126,7 +97,7 @@
   <div class="app">
     <div class="card">
       <div class="preview-wrap">
-        <canvas id="previewCanvas" class="preview-canvas" aria-label="Изображение с цитатой"></canvas>
+        <canvas id="previewCanvas" class="preview-canvas" aria-label="Карточка с цитатой и автором"></canvas>
       </div>
     </div>
 
@@ -135,71 +106,81 @@
       <button id="saveBtn" class="btn-primary" type="button">Сохранить</button>
     </div>
 
-    <p id="status" class="status">Загружаем цитаты и изображение…</p>
-    <p class="hint">Положите рядом с этим файлом <b>flower.png</b> и <b>citaty.txt</b> (по одной цитате на строку). Для GitHub Pages этого достаточно. Потому что иногда простые решения работают лучше, чем половина стартапов.</p>
-
-    <div class="hidden-assets" aria-hidden="true">
-      <img id="flowerImg" src="flower.png" alt="flower" crossorigin="anonymous" />
-    </div>
+    <p id="status" class="status">Загружаем цитаты…</p>
+    <p class="hint">Формат строки в <b>citaty.txt</b>: <i>текст цитаты (Автор) (photo.jpg)</i>. Фото положите рядом с <b>index.html</b>. Если у файла забыли расширение, сайт попробует добавить <b>.jpg</b>, потому что идеальные исходники бывают только в легендах.</p>
   </div>
 
   <script>
-    const fallbackQuotes = [
-      'Цитата 1','Цитата 2','Цитата 3','Цитата 4','Цитата 5',
-      'Цитата 6','Цитата 7','Цитата 8','Цитата 9','Цитата 10',
-      'Цитата 11','Цитата 12','Цитата 13','Цитата 14','Цитата 15',
-      'Цитата 16','Цитата 17','Цитата 18','Цитата 19','Цитата 20'
-    ];
-
     const state = {
-      quotes: [],
-      currentQuote: '',
+      entries: [],
+      current: null,
       lastIndex: -1,
-      flowerLoaded: false,
       busy: false,
+      imageCache: new Map(),
     };
 
     const canvas = document.getElementById('previewCanvas');
     const ctx = canvas.getContext('2d');
-    const flowerImg = document.getElementById('flowerImg');
     const statusEl = document.getElementById('status');
     const newQuoteBtn = document.getElementById('newQuoteBtn');
     const saveBtn = document.getElementById('saveBtn');
 
-    function setStatus(text) {
-      statusEl.textContent = text;
-    }
+    const fallbackEntries = [
+      { quote: 'Не знаешь, что делать - иди в библиотеку', author: 'Джоан Роулинг', photo: 'Rowling.jpg' },
+      { quote: 'Как ни странно, порою ошибки человеческие приносят человеку больше пользы, чем поступки и продуманные, и разумные', author: 'Надежда Тэффи', photo: 'Teffi.jpg' },
+      { quote: 'Счастье приходит изнутри, а не от других', author: 'Агния Барто', photo: 'Barto.jpg' },
+      { quote: 'Археолог — лучший муж, который только может быть у женщины. Чем старее она становится, тем больший интерес он к ней проявляет', author: 'Агата Кристи', photo: 'Kristi.jpg' },
+      { quote: 'У надежды глаза так же велики, как и у страха', author: 'Зинаида Гиппиус', photo: 'Gippius.jpg' }
+    ];
 
+    function setStatus(text) { statusEl.textContent = text; }
     function setBusy(flag) {
       state.busy = flag;
-      saveBtn.disabled = flag;
       newQuoteBtn.disabled = flag;
+      saveBtn.disabled = flag;
     }
 
-    async function loadQuotes() {
+    function normalizePhotoFile(name) {
+      const trimmed = String(name || '').trim();
+      if (!trimmed) return '';
+      if (/\.[a-z0-9]{2,5}$/i.test(trimmed)) return trimmed;
+      return trimmed + '.jpg';
+    }
+
+    function parseLine(line) {
+      const m = line.match(/^(.*)\s*\(([^()]+)\)\s*\(([^()]+)\)\s*$/);
+      if (!m) return null;
+      return {
+        quote: m[1].trim(),
+        author: m[2].trim(),
+        photo: normalizePhotoFile(m[3])
+      };
+    }
+
+    async function loadEntries() {
       try {
         const res = await fetch('citaty.txt', { cache: 'no-store' });
         if (!res.ok) throw new Error('Нет файла citaty.txt');
         const txt = await res.text();
-        const lines = txt
-          .split(/\r?\n/)
+        const entries = txt.split(/\r?\n/)
           .map(s => s.trim())
+          .filter(Boolean)
+          .map(parseLine)
           .filter(Boolean);
 
-        if (!lines.length) throw new Error('Файл citaty.txt пуст');
-        state.quotes = lines;
-        return;
+        if (!entries.length) throw new Error('Не удалось распарсить строки');
+        state.entries = entries;
       } catch (e) {
-        console.warn('Использую fallback-цитаты:', e);
-        state.quotes = [...fallbackQuotes];
+        console.warn('Использую fallback:', e);
+        state.entries = fallbackEntries.slice(0, 5);
       }
     }
 
-    function pickRandomQuote() {
-      const arr = state.quotes.length ? state.quotes : fallbackQuotes;
+    function pickRandomEntry() {
+      const arr = state.entries.length ? state.entries : fallbackEntries;
       if (arr.length === 1) {
         state.lastIndex = 0;
-        state.currentQuote = arr[0];
+        state.current = arr[0];
         return arr[0];
       }
       let idx;
@@ -207,7 +188,7 @@
         idx = Math.floor(Math.random() * arr.length);
       } while (idx === state.lastIndex && arr.length > 1);
       state.lastIndex = idx;
-      state.currentQuote = arr[idx];
+      state.current = arr[idx];
       return arr[idx];
     }
 
@@ -226,7 +207,6 @@
       const words = text.split(/\s+/).filter(Boolean);
       const lines = [];
       let line = '';
-
       for (const word of words) {
         const test = line ? line + ' ' + word : word;
         if (context.measureText(test).width <= maxWidth) {
@@ -234,13 +214,11 @@
         } else {
           if (line) lines.push(line);
           if (context.measureText(word).width > maxWidth) {
-            // грубый перенос длинных слов по символам
             let part = '';
             for (const ch of word) {
               const t = part + ch;
-              if (context.measureText(t).width <= maxWidth) {
-                part = t;
-              } else {
+              if (context.measureText(t).width <= maxWidth) part = t;
+              else {
                 if (part) lines.push(part);
                 part = ch;
               }
@@ -252,15 +230,44 @@
         }
       }
       if (line) lines.push(line);
-
       lines.forEach((ln, i) => context.fillText(ln, x, y + i * lineHeight));
       return lines.length;
     }
 
-    function renderCard() {
+    function createImageLoader(src) {
+      return new Promise(resolve => {
+        const img = new Image();
+        img.onload = () => resolve({ ok: true, img });
+        img.onerror = () => resolve({ ok: false, img: null });
+        img.src = src;
+      });
+    }
+
+    async function getAuthorImage(src) {
+      if (!src) return null;
+      if (state.imageCache.has(src)) return state.imageCache.get(src);
+      const p = createImageLoader(src).then(r => r.ok ? r.img : null);
+      state.imageCache.set(src, p);
+      return p;
+    }
+
+    function drawPhotoCover(img, x, y, w, h) {
+      const iw = img.naturalWidth || img.width;
+      const ih = img.naturalHeight || img.height;
+      if (!iw || !ih) return;
+      const scale = Math.max(w / iw, h / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      const dx = x + (w - dw) / 2;
+      const dy = y + (h - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
+    }
+
+    async function renderCard() {
+      const entry = state.current || { quote: '...', author: 'Автор', photo: '' };
       const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
       const cssWidth = Math.min(520, Math.max(300, window.innerWidth - 28));
-      const cssHeight = Math.round(cssWidth * 1.45);
+      const cssHeight = Math.round(cssWidth * 1.48);
       canvas.width = Math.round(cssWidth * DPR);
       canvas.height = Math.round(cssHeight * DPR);
       canvas.style.width = cssWidth + 'px';
@@ -269,71 +276,68 @@
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
       ctx.clearRect(0, 0, cssWidth, cssHeight);
 
-      // фон карточки
-      const g = ctx.createLinearGradient(0, 0, 0, cssHeight);
-      g.addColorStop(0, '#fffafc');
-      g.addColorStop(1, '#fff2f7');
-      ctx.fillStyle = g;
+      const bg = ctx.createLinearGradient(0, 0, 0, cssHeight);
+      bg.addColorStop(0, '#fffafc');
+      bg.addColorStop(1, '#fff2f7');
+      ctx.fillStyle = bg;
       roundRectPath(ctx, 0, 0, cssWidth, cssHeight, 18);
       ctx.fill();
 
-      // мягкие пятна
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.65;
       ctx.fillStyle = 'rgba(255, 214, 234, 0.55)';
-      ctx.beginPath(); ctx.arc(cssWidth * 0.18, cssHeight * 0.18, cssWidth * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cssWidth * 0.15, cssHeight * 0.13, cssWidth * 0.16, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(255, 240, 246, 0.95)';
-      ctx.beginPath(); ctx.arc(cssWidth * 0.82, cssHeight * 0.13, cssWidth * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(cssWidth * 0.86, cssHeight * 0.12, cssWidth * 0.15, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
 
-      // декоративная рамка
       ctx.strokeStyle = 'rgba(216, 94, 146, 0.20)';
       ctx.lineWidth = 1.5;
       roundRectPath(ctx, 8, 8, cssWidth - 16, cssHeight - 16, 16);
       ctx.stroke();
 
-      // изображение flower
-      const topPad = Math.round(cssHeight * 0.06);
-      const sidePad = Math.round(cssWidth * 0.12);
-      const maxFlowerW = cssWidth - sidePad * 2;
-      const maxFlowerH = Math.round(cssHeight * 0.45);
+      const photoX = Math.round(cssWidth * 0.07);
+      const photoY = Math.round(cssHeight * 0.05);
+      const photoW = cssWidth - photoX * 2;
+      const photoH = Math.round(cssHeight * 0.43);
 
-      if (state.flowerLoaded && flowerImg.naturalWidth > 0) {
-        const scale = Math.min(maxFlowerW / flowerImg.naturalWidth, maxFlowerH / flowerImg.naturalHeight);
-        const dw = Math.round(flowerImg.naturalWidth * scale);
-        const dh = Math.round(flowerImg.naturalHeight * scale);
-        const dx = Math.round((cssWidth - dw) / 2);
-        const dy = topPad;
+      ctx.save();
+      roundRectPath(ctx, photoX, photoY, photoW, photoH, 16);
+      ctx.clip();
 
-        // лёгкая подложка под png
-        ctx.save();
-        ctx.globalAlpha = 0.55;
-        ctx.fillStyle = 'white';
-        roundRectPath(ctx, dx - 8, dy - 8, dw + 16, dh + 16, 16);
-        ctx.fill();
-        ctx.restore();
-
-        ctx.drawImage(flowerImg, dx, dy, dw, dh);
+      const authorImg = await getAuthorImage(entry.photo);
+      if (authorImg) {
+        drawPhotoCover(authorImg, photoX, photoY, photoW, photoH);
       } else {
-        ctx.fillStyle = '#efdbe6';
-        roundRectPath(ctx, sidePad, topPad, maxFlowerW, maxFlowerH, 14);
-        ctx.fill();
-        ctx.fillStyle = '#9a7f8f';
-        ctx.font = `600 ${Math.max(14, Math.round(cssWidth * 0.04))}px ${getComputedStyle(document.body).fontFamily}`;
+        const pg = ctx.createLinearGradient(photoX, photoY, photoX, photoY + photoH);
+        pg.addColorStop(0, '#f0e4ea');
+        pg.addColorStop(1, '#eadbe5');
+        ctx.fillStyle = pg;
+        ctx.fillRect(photoX, photoY, photoW, photoH);
+        ctx.fillStyle = '#8e7484';
         ctx.textAlign = 'center';
-        ctx.fillText('flower.png не найден', cssWidth / 2, topPad + maxFlowerH / 2);
+        ctx.textBaseline = 'middle';
+        ctx.font = `600 ${Math.max(14, Math.round(cssWidth * 0.04))}px Inter, sans-serif`;
+        ctx.fillText(entry.photo || 'Фото не найдено', photoX + photoW / 2, photoY + photoH / 2 - 12);
+        ctx.font = `500 ${Math.max(11, Math.round(cssWidth * 0.028))}px var(--ui-font)`;
+        ctx.fillText('Добавьте файл рядом с index.html', photoX + photoW / 2, photoY + photoH / 2 + 16);
       }
+      ctx.restore();
 
-      // блок цитаты
-      const quoteBoxY = Math.round(cssHeight * 0.53);
-      const quoteBoxH = Math.round(cssHeight * 0.34);
+      ctx.strokeStyle = 'rgba(216, 94, 146, 0.14)';
+      ctx.lineWidth = 1;
+      roundRectPath(ctx, photoX, photoY, photoW, photoH, 16);
+      ctx.stroke();
+
       const quoteBoxX = Math.round(cssWidth * 0.07);
+      const quoteBoxY = Math.round(cssHeight * 0.52);
       const quoteBoxW = cssWidth - quoteBoxX * 2;
+      const quoteBoxH = Math.round(cssHeight * 0.36);
 
       ctx.save();
       ctx.shadowColor = 'rgba(125, 70, 100, 0.08)';
       ctx.shadowBlur = 18;
       ctx.shadowOffsetY = 6;
-      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillStyle = 'rgba(255,255,255,0.92)';
       roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18);
       ctx.fill();
       ctx.restore();
@@ -343,58 +347,56 @@
       roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18);
       ctx.stroke();
 
-      // кавычки
       ctx.fillStyle = 'rgba(216, 94, 146, 0.22)';
       ctx.font = `700 ${Math.round(cssWidth * 0.16)}px Georgia, serif`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
       ctx.fillText('“', quoteBoxX + 16, quoteBoxY + 4);
 
-      // текст цитаты
-      const quote = state.currentQuote || '...';
-      const fontSize = Math.max(18, Math.round(cssWidth * 0.052));
-      const lineHeight = Math.round(fontSize * 1.35);
+      const quote = entry.quote || '...';
+      const quoteFont = Math.max(17, Math.round(cssWidth * 0.048));
+      const lineHeight = Math.round(quoteFont * 1.34);
       ctx.fillStyle = '#302531';
-      ctx.font = `500 ${fontSize}px Georgia, serif`;
+      ctx.font = `500 ${quoteFont}px Lora, Georgia, serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
+      const lines = drawWrappedText(ctx, quote, cssWidth / 2, quoteBoxY + 62, quoteBoxW - 34, lineHeight);
 
-      const textX = cssWidth / 2;
-      const textY = quoteBoxY + 64;
-      const textW = quoteBoxW - 34;
-      const lines = drawWrappedText(ctx, quote, textX, textY, textW, lineHeight);
-
-      // нижняя подпись
-      ctx.fillStyle = 'rgba(108, 92, 105, 0.9)';
-      ctx.font = `500 ${Math.max(10, Math.round(cssWidth * 0.028))}px ${getComputedStyle(document.body).fontFamily}`;
+      const authorY = Math.min(quoteBoxY + quoteBoxH - 42, quoteBoxY + 70 + lines * lineHeight + 18);
+      ctx.fillStyle = '#7c6171';
+      ctx.font = `600 ${Math.max(12, Math.round(cssWidth * 0.032))}px Inter, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText('Случайная цитата', cssWidth / 2, cssHeight - 24);
+      ctx.fillText('— ' + (entry.author || 'Автор'), cssWidth / 2, authorY);
 
-      return { lines };
+      ctx.fillStyle = 'rgba(108, 92, 105, 0.88)';
+      ctx.font = `500 ${Math.max(10, Math.round(cssWidth * 0.026))}px Inter, sans-serif`;
+      ctx.fillText('Случайная цитата', cssWidth / 2, cssHeight - 22);
     }
 
-    function refreshQuoteAndRender() {
-      pickRandomQuote();
-      renderCard();
-      setStatus('Готово. Можете сохранить картинку.');
+    async function refreshEntryAndRender() {
+      pickRandomEntry();
+      await renderCard();
+      const fileNameNote = state.current?.photo ? ` Фото: ${state.current.photo}` : '';
+      setStatus('Готово. Можете сохранить картинку.' + fileNameNote);
     }
 
     async function saveImage() {
       setBusy(true);
       setStatus('Готовим изображение…');
       try {
-        renderCard();
+        await renderCard();
         const blob = await new Promise((resolve, reject) => {
           canvas.toBlob(b => b ? resolve(b) : reject(new Error('Не удалось создать PNG')), 'image/png');
         });
 
-        const fileName = `quote-${Date.now()}.png`;
+        const safeAuthor = (state.current?.author || 'author').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '') || 'author';
+        const fileName = `quote-${safeAuthor}-${Date.now()}.png`;
         const file = new File([blob], fileName, { type: 'image/png' });
 
         const canShareFile = typeof navigator.share === 'function' && navigator.canShare && navigator.canShare({ files: [file] });
         if (canShareFile) {
           await navigator.share({ files: [file], title: 'Цитата', text: 'Картинка с цитатой' });
-          setStatus('Изображение отправлено через меню "Поделиться".');
+          setStatus('Изображение отправлено через меню «Поделиться».');
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -404,53 +406,32 @@
           a.click();
           a.remove();
           setTimeout(() => URL.revokeObjectURL(url), 2000);
-          setStatus('PNG скачан. На iPhone сохраните через "Файлы"/"Фото" из загрузок, если браузер не делает это сам.');
+          setStatus('PNG скачан. Если это iPhone и браузер вредничает, сохраните из загрузок.');
         }
       } catch (err) {
         console.error(err);
-        setStatus('Не получилось сохранить изображение. Проверьте, открыт ли сайт по https (GitHub Pages ок).');
+        setStatus('Не получилось сохранить изображение. Проверьте https и наличие файлов фото рядом с index.html.');
       } finally {
         setBusy(false);
       }
     }
 
-    function waitForImage(img) {
-      return new Promise(resolve => {
-        if (img.complete && img.naturalWidth > 0) {
-          resolve(true);
-          return;
-        }
-        const onLoad = () => { cleanup(); resolve(true); };
-        const onError = () => { cleanup(); resolve(false); };
-        const cleanup = () => {
-          img.removeEventListener('load', onLoad);
-          img.removeEventListener('error', onError);
-        };
-        img.addEventListener('load', onLoad, { once: true });
-        img.addEventListener('error', onError, { once: true });
-      });
-    }
-
     async function init() {
       setBusy(true);
-      await loadQuotes();
-      state.flowerLoaded = await waitForImage(flowerImg);
-      if (!state.flowerLoaded) {
-        setStatus('flower.png не загрузился. Покажу цитату без картинки, потому что жизнь и так любит сюрпризы.');
-      }
-      refreshQuoteAndRender();
+      await loadEntries();
+      await refreshEntryAndRender();
       setBusy(false);
     }
 
-    newQuoteBtn.addEventListener('click', () => {
-      refreshQuoteAndRender();
+    newQuoteBtn.addEventListener('click', async () => {
+      if (state.busy) return;
+      setBusy(true);
+      try { await refreshEntryAndRender(); }
+      finally { setBusy(false); }
     });
 
     saveBtn.addEventListener('click', saveImage);
-
-    window.addEventListener('resize', () => {
-      renderCard();
-    });
+    window.addEventListener('resize', () => { renderCard(); });
 
     init();
   </script>
