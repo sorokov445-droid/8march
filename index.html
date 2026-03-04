@@ -112,18 +112,38 @@ async function renderCard(){
   const entry = state.current || {quote:'...',author:'Автор',photo:''};
   const DPR = Math.max(1, Math.min(window.devicePixelRatio||1, 2));
   const cssWidth = Math.min(520, Math.max(300, window.innerWidth - 28));
-  const cssHeight = Math.round(cssWidth * 1.52);
+
+  // 1) Сначала считаем текст и нужную высоту, чтобы фон/рамка не "уезжали" вниз на коротких цитатах
+  const quoteFont = Math.max(17, Math.round(cssWidth * .048));
+  const lineHeight = Math.round(quoteFont * 1.34);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.font = `500 ${quoteFont}px Lora, Georgia, serif`;
+
+  const quoteBoxX = Math.round(cssWidth * .07);
+  const quoteBoxW = cssWidth - quoteBoxX*2;
+  const textW = quoteBoxW - 34;
+  const lines = wrapTextLines(ctx, entry.quote || '...', textW);
+
+  const baseHeight = Math.round(cssWidth * 1.52);
+  const photoTop = Math.round(baseHeight * .05);
+  const photoH = Math.round(baseHeight * .42);
+  const quoteBoxY = Math.round(baseHeight * .52);
+  const quoteBoxH = Math.max(Math.round(baseHeight * .18), 62 + (lines.length - 1) * lineHeight + 34);
+  const authorY = quoteBoxY + quoteBoxH + 36;
+  const neededHeight = authorY + 56; // нижний отступ под имя автора
+  const cssHeight = Math.max(Math.round(cssWidth * 1.34), neededHeight);
+
   canvas.width = Math.round(cssWidth * DPR); canvas.height = Math.round(cssHeight * DPR);
   canvas.style.width = cssWidth+'px'; canvas.style.height = cssHeight+'px';
   ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,cssWidth,cssHeight);
 
   const bg = ctx.createLinearGradient(0,0,0,cssHeight); bg.addColorStop(0,'#fffafc'); bg.addColorStop(1,'#fff2f7');
   ctx.fillStyle = bg; roundRectPath(ctx,0,0,cssWidth,cssHeight,18); ctx.fill();
-  ctx.globalAlpha=.65; ctx.fillStyle='rgba(255,214,234,.55)'; ctx.beginPath(); ctx.arc(cssWidth*.15, cssHeight*.13, cssWidth*.16, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle='rgba(255,240,246,.95)'; ctx.beginPath(); ctx.arc(cssWidth*.86, cssHeight*.12, cssWidth*.15, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
+  ctx.globalAlpha=.65; ctx.fillStyle='rgba(255,214,234,.55)'; ctx.beginPath(); ctx.arc(cssWidth*.15, Math.max(54, cssHeight*.11), cssWidth*.16, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,240,246,.95)'; ctx.beginPath(); ctx.arc(cssWidth*.86, Math.max(48, cssHeight*.10), cssWidth*.15, 0, Math.PI*2); ctx.fill(); ctx.globalAlpha=1;
   ctx.strokeStyle='rgba(216,94,146,.20)'; ctx.lineWidth=1.5; roundRectPath(ctx,8,8,cssWidth-16,cssHeight-16,16); ctx.stroke();
 
-  const photoX = Math.round(cssWidth * .07), photoY = Math.round(cssHeight * .05), photoW = cssWidth - photoX*2, photoH = Math.round(cssHeight * .42);
+  const photoX = Math.round(cssWidth * .07), photoY = photoTop, photoW = cssWidth - photoX*2;
   // светлая подложка именно под фото, чтобы убрать темные углы от альфа-краев
   ctx.fillStyle = '#f7f3f5'; roundRectPath(ctx, photoX, photoY, photoW, photoH, 16); ctx.fill();
   const img = await getAuthorImage(entry.photo);
@@ -140,15 +160,8 @@ async function renderCard(){
   ctx.strokeStyle='rgba(216,94,146,.14)'; ctx.lineWidth=1; roundRectPath(ctx, photoX, photoY, photoW, photoH, 16); ctx.stroke();
 
   // Текст и динамическая подложка
-  const quoteBoxX = Math.round(cssWidth * .07), quoteBoxY = Math.round(cssHeight * .52), quoteBoxW = cssWidth - quoteBoxX*2;
-  const quoteFont = Math.max(17, Math.round(cssWidth * .048));
-  const lineHeight = Math.round(quoteFont * 1.34);
   const textX = cssWidth / 2;
   const textY = quoteBoxY + 62;
-  const textW = quoteBoxW - 34;
-  ctx.font = `500 ${quoteFont}px Lora, Georgia, serif`;
-  const lines = wrapTextLines(ctx, entry.quote || '...', textW);
-  const quoteBoxH = Math.max(Math.round(cssHeight * .18), 62 + (lines.length - 1) * lineHeight + 34);
 
   ctx.save(); ctx.shadowColor='rgba(125,70,100,.08)'; ctx.shadowBlur=18; ctx.shadowOffsetY=6; ctx.fillStyle='rgba(255,255,255,.92)';
   roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18); ctx.fill(); ctx.restore();
@@ -159,7 +172,6 @@ async function renderCard(){
   drawLines(ctx, lines, textX, textY, lineHeight);
 
   // Имя автора всегда сразу под белой подложкой
-  const authorY = quoteBoxY + quoteBoxH + 36;
   ctx.fillStyle='rgba(108,92,105,.92)'; ctx.font=`600 ${Math.max(11, Math.round(cssWidth*.028))}px Inter, sans-serif`; ctx.textAlign='center';
   ctx.fillText(entry.author || 'Автор', cssWidth/2, Math.min(authorY, cssHeight - 20));
 }
