@@ -49,6 +49,7 @@
 const state = { entries: [], current:null, lastIndex:-1, busy:false, imageCache:new Map() };
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
+const previewCard = canvas.closest('.card');
 const statusEl = document.getElementById('status');
 const newQuoteBtn = document.getElementById('newQuoteBtn');
 const saveBtn = document.getElementById('saveBtn');
@@ -111,7 +112,10 @@ function drawPhotoCover(img,x,y,w,h){ const iw=img.naturalWidth||img.width, ih=i
 async function renderCard(){
   const entry = state.current || {quote:'...',author:'Автор',photo:''};
   const DPR = Math.max(1, Math.min(window.devicePixelRatio||1, 2));
-  const cssWidth = Math.min(520, Math.max(300, window.innerWidth - 28));
+  // Берем реальную ширину контейнера, а не window.innerWidth, иначе на мобильных
+  // canvas может стать шире внутренней области карточки и визуально 'съехать' вбок.
+  const containerWidth = Math.floor((previewCard?.clientWidth || canvas.parentElement?.clientWidth || window.innerWidth) - 0);
+  const cssWidth = Math.min(520, Math.max(300, containerWidth));
 
   // 1) Сначала считаем текст и нужную высоту, чтобы фон/рамка не "уезжали" вниз на коротких цитатах
   const quoteFont = Math.max(17, Math.round(cssWidth * .048));
