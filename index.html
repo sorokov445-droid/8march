@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7eef3" />
+  <title>Цитата дня</title>
+  <style>
+    :root {
+      --bg1: #fff7fb;
+      --bg2: #f7eef7;
+      --card: rgba(255,255,255,0.82);
+      --text: #2f2430;
+      --muted: #6c5c69;
+      --accent: #d85e92;
+      --accent2: #b84575;
+      --shadow: 0 14px 35px rgba(110, 65, 92, 0.16);
+      --radius: 22px;
+      --quote-font: Georgia, 'Times New Roman', serif;
+      --ui-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      min-height: 100vh;
+      font-family: var(--ui-font);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 18% 12%, rgba(255, 212, 233, 0.55), transparent 42%),
+        radial-gradient(circle at 88% 8%, rgba(255, 230, 241, 0.5), transparent 38%),
+        linear-gradient(180deg, var(--bg1), var(--bg2));
+      display: flex;
+      justify-content: center;
+      align-items: stretch;
+      padding: max(14px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
+    }
+
+    .app {
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--card);
+      backdrop-filter: blur(8px);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid rgba(255,255,255,0.7);
+      padding: 16px;
+    }
+
+    .preview-wrap {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .preview-canvas {
+      width: 100%;
+      height: auto;
+      border-radius: 16px;
+      display: block;
+      background: #fff;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform .08s ease, opacity .15s ease, box-shadow .15s ease;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    }
+    button:active { transform: translateY(1px) scale(0.995); }
+    button:disabled { opacity: .55; cursor: wait; }
+
+    .btn-primary {
+      color: white;
+      background: linear-gradient(180deg, var(--accent), var(--accent2));
+    }
+    .btn-secondary {
+      color: var(--text);
+      background: rgba(255,255,255,0.88);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    .status {
+      margin: 0;
+      font-size: 13px;
+      color: var(--muted);
+      min-height: 1.2em;
+      text-align: center;
+    }
+
+    .hint {
+      margin: 0;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .hidden-assets { display: none; }
+
+    @media (max-width: 360px) {
+      .card { padding: 12px; }
+      button { font-size: 14px; padding: 11px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="card">
+      <div class="preview-wrap">
+        <canvas id="previewCanvas" class="preview-canvas" aria-label="Изображение с цитатой"></canvas>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="newQuoteBtn" class="btn-secondary" type="button">Другая цитата</button>
+      <button id="saveBtn" class="btn-primary" type="button">Сохранить</button>
+    </div>
+
+    <p id="status" class="status">Загружаем цитаты и изображение…</p>
+    <p class="hint">Положите рядом с этим файлом <b>flower.png</b> и <b>citaty.txt</b> (по одной цитате на строку). Для GitHub Pages этого достаточно. Потому что иногда простые решения работают лучше, чем половина стартапов.</p>
+
+    <div class="hidden-assets" aria-hidden="true">
+      <img id="flowerImg" src="flower.png" alt="flower" crossorigin="anonymous" />
+    </div>
+  </div>
+
+  <script>
+    const fallbackQuotes = [
+      'Цитата 1','Цитата 2','Цитата 3','Цитата 4','Цитата 5',
+      'Цитата 6','Цитата 7','Цитата 8','Цитата 9','Цитата 10',
+      'Цитата 11','Цитата 12','Цитата 13','Цитата 14','Цитата 15',
+      'Цитата 16','Цитата 17','Цитата 18','Цитата 19','Цитата 20'
+    ];
+
+    const state = {
+      quotes: [],
+      currentQuote: '',
+      lastIndex: -1,
+      flowerLoaded: false,
+      busy: false,
+    };
+
+    const canvas = document.getElementById('previewCanvas');
+    const ctx = canvas.getContext('2d');
+    const flowerImg = document.getElementById('flowerImg');
+    const statusEl = document.getElementById('status');
+    const newQuoteBtn = document.getElementById('newQuoteBtn');
+    const saveBtn = document.getElementById('saveBtn');
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function setBusy(flag) {
+      state.busy = flag;
+      saveBtn.disabled = flag;
+      newQuoteBtn.disabled = flag;
+    }
+
+    async function loadQuotes() {
+      try {
+        const res = await fetch('citaty.txt', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Нет файла citaty.txt');
+        const txt = await res.text();
+        const lines = txt
+          .split(/\r?\n/)
+          .map(s => s.trim())
+          .filter(Boolean);
+
+        if (!lines.length) throw new Error('Файл citaty.txt пуст');
+        state.quotes = lines;
+        return;
+      } catch (e) {
+        console.warn('Использую fallback-цитаты:', e);
+        state.quotes = [...fallbackQuotes];
+      }
+    }
+
+    function pickRandomQuote() {
+      const arr = state.quotes.length ? state.quotes : fallbackQuotes;
+      if (arr.length === 1) {
+        state.lastIndex = 0;
+        state.currentQuote = arr[0];
+        return arr[0];
+      }
+      let idx;
+      do {
+        idx = Math.floor(Math.random() * arr.length);
+      } while (idx === state.lastIndex && arr.length > 1);
+      state.lastIndex = idx;
+      state.currentQuote = arr[idx];
+      return arr[idx];
+    }
+
+    function roundRectPath(context, x, y, w, h, r) {
+      const rr = Math.min(r, w / 2, h / 2);
+      context.beginPath();
+      context.moveTo(x + rr, y);
+      context.arcTo(x + w, y, x + w, y + h, rr);
+      context.arcTo(x + w, y + h, x, y + h, rr);
+      context.arcTo(x, y + h, x, y, rr);
+      context.arcTo(x, y, x + w, y, rr);
+      context.closePath();
+    }
+
+    function drawWrappedText(context, text, x, y, maxWidth, lineHeight) {
+      const words = text.split(/\s+/).filter(Boolean);
+      const lines = [];
+      let line = '';
+
+      for (const word of words) {
+        const test = line ? line + ' ' + word : word;
+        if (context.measureText(test).width <= maxWidth) {
+          line = test;
+        } else {
+          if (line) lines.push(line);
+          if (context.measureText(word).width > maxWidth) {
+            // грубый перенос длинных слов по символам
+            let part = '';
+            for (const ch of word) {
+              const t = part + ch;
+              if (context.measureText(t).width <= maxWidth) {
+                part = t;
+              } else {
+                if (part) lines.push(part);
+                part = ch;
+              }
+            }
+            line = part;
+          } else {
+            line = word;
+          }
+        }
+      }
+      if (line) lines.push(line);
+
+      lines.forEach((ln, i) => context.fillText(ln, x, y + i * lineHeight));
+      return lines.length;
+    }
+
+    function renderCard() {
+      const DPR = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      const cssWidth = Math.min(520, Math.max(300, window.innerWidth - 28));
+      const cssHeight = Math.round(cssWidth * 1.45);
+      canvas.width = Math.round(cssWidth * DPR);
+      canvas.height = Math.round(cssHeight * DPR);
+      canvas.style.width = cssWidth + 'px';
+      canvas.style.height = cssHeight + 'px';
+
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+      // фон карточки
+      const g = ctx.createLinearGradient(0, 0, 0, cssHeight);
+      g.addColorStop(0, '#fffafc');
+      g.addColorStop(1, '#fff2f7');
+      ctx.fillStyle = g;
+      roundRectPath(ctx, 0, 0, cssWidth, cssHeight, 18);
+      ctx.fill();
+
+      // мягкие пятна
+      ctx.globalAlpha = 0.7;
+      ctx.fillStyle = 'rgba(255, 214, 234, 0.55)';
+      ctx.beginPath(); ctx.arc(cssWidth * 0.18, cssHeight * 0.18, cssWidth * 0.18, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255, 240, 246, 0.95)';
+      ctx.beginPath(); ctx.arc(cssWidth * 0.82, cssHeight * 0.13, cssWidth * 0.16, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // декоративная рамка
+      ctx.strokeStyle = 'rgba(216, 94, 146, 0.20)';
+      ctx.lineWidth = 1.5;
+      roundRectPath(ctx, 8, 8, cssWidth - 16, cssHeight - 16, 16);
+      ctx.stroke();
+
+      // изображение flower
+      const topPad = Math.round(cssHeight * 0.06);
+      const sidePad = Math.round(cssWidth * 0.12);
+      const maxFlowerW = cssWidth - sidePad * 2;
+      const maxFlowerH = Math.round(cssHeight * 0.45);
+
+      if (state.flowerLoaded && flowerImg.naturalWidth > 0) {
+        const scale = Math.min(maxFlowerW / flowerImg.naturalWidth, maxFlowerH / flowerImg.naturalHeight);
+        const dw = Math.round(flowerImg.naturalWidth * scale);
+        const dh = Math.round(flowerImg.naturalHeight * scale);
+        const dx = Math.round((cssWidth - dw) / 2);
+        const dy = topPad;
+
+        // лёгкая подложка под png
+        ctx.save();
+        ctx.globalAlpha = 0.55;
+        ctx.fillStyle = 'white';
+        roundRectPath(ctx, dx - 8, dy - 8, dw + 16, dh + 16, 16);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.drawImage(flowerImg, dx, dy, dw, dh);
+      } else {
+        ctx.fillStyle = '#efdbe6';
+        roundRectPath(ctx, sidePad, topPad, maxFlowerW, maxFlowerH, 14);
+        ctx.fill();
+        ctx.fillStyle = '#9a7f8f';
+        ctx.font = `600 ${Math.max(14, Math.round(cssWidth * 0.04))}px ${getComputedStyle(document.body).fontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.fillText('flower.png не найден', cssWidth / 2, topPad + maxFlowerH / 2);
+      }
+
+      // блок цитаты
+      const quoteBoxY = Math.round(cssHeight * 0.53);
+      const quoteBoxH = Math.round(cssHeight * 0.34);
+      const quoteBoxX = Math.round(cssWidth * 0.07);
+      const quoteBoxW = cssWidth - quoteBoxX * 2;
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(125, 70, 100, 0.08)';
+      ctx.shadowBlur = 18;
+      ctx.shadowOffsetY = 6;
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.strokeStyle = 'rgba(216, 94, 146, 0.12)';
+      ctx.lineWidth = 1;
+      roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18);
+      ctx.stroke();
+
+      // кавычки
+      ctx.fillStyle = 'rgba(216, 94, 146, 0.22)';
+      ctx.font = `700 ${Math.round(cssWidth * 0.16)}px Georgia, serif`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillText('“', quoteBoxX + 16, quoteBoxY + 4);
+
+      // текст цитаты
+      const quote = state.currentQuote || '...';
+      const fontSize = Math.max(18, Math.round(cssWidth * 0.052));
+      const lineHeight = Math.round(fontSize * 1.35);
+      ctx.fillStyle = '#302531';
+      ctx.font = `500 ${fontSize}px Georgia, serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+
+      const textX = cssWidth / 2;
+      const textY = quoteBoxY + 64;
+      const textW = quoteBoxW - 34;
+      const lines = drawWrappedText(ctx, quote, textX, textY, textW, lineHeight);
+
+      // нижняя подпись
+      ctx.fillStyle = 'rgba(108, 92, 105, 0.9)';
+      ctx.font = `500 ${Math.max(10, Math.round(cssWidth * 0.028))}px ${getComputedStyle(document.body).fontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.fillText('Случайная цитата', cssWidth / 2, cssHeight - 24);
+
+      return { lines };
+    }
+
+    function refreshQuoteAndRender() {
+      pickRandomQuote();
+      renderCard();
+      setStatus('Готово. Можете сохранить картинку.');
+    }
+
+    async function saveImage() {
+      setBusy(true);
+      setStatus('Готовим изображение…');
+      try {
+        renderCard();
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob(b => b ? resolve(b) : reject(new Error('Не удалось создать PNG')), 'image/png');
+        });
+
+        const fileName = `quote-${Date.now()}.png`;
+        const file = new File([blob], fileName, { type: 'image/png' });
+
+        const canShareFile = typeof navigator.share === 'function' && navigator.canShare && navigator.canShare({ files: [file] });
+        if (canShareFile) {
+          await navigator.share({ files: [file], title: 'Цитата', text: 'Картинка с цитатой' });
+          setStatus('Изображение отправлено через меню "Поделиться".');
+        } else {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = fileName;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+          setStatus('PNG скачан. На iPhone сохраните через "Файлы"/"Фото" из загрузок, если браузер не делает это сам.');
+        }
+      } catch (err) {
+        console.error(err);
+        setStatus('Не получилось сохранить изображение. Проверьте, открыт ли сайт по https (GitHub Pages ок).');
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    function waitForImage(img) {
+      return new Promise(resolve => {
+        if (img.complete && img.naturalWidth > 0) {
+          resolve(true);
+          return;
+        }
+        const onLoad = () => { cleanup(); resolve(true); };
+        const onError = () => { cleanup(); resolve(false); };
+        const cleanup = () => {
+          img.removeEventListener('load', onLoad);
+          img.removeEventListener('error', onError);
+        };
+        img.addEventListener('load', onLoad, { once: true });
+        img.addEventListener('error', onError, { once: true });
+      });
+    }
+
+    async function init() {
+      setBusy(true);
+      await loadQuotes();
+      state.flowerLoaded = await waitForImage(flowerImg);
+      if (!state.flowerLoaded) {
+        setStatus('flower.png не загрузился. Покажу цитату без картинки, потому что жизнь и так любит сюрпризы.');
+      }
+      refreshQuoteAndRender();
+      setBusy(false);
+    }
+
+    newQuoteBtn.addEventListener('click', () => {
+      refreshQuoteAndRender();
+    });
+
+    saveBtn.addEventListener('click', saveImage);
+
+    window.addEventListener('resize', () => {
+      renderCard();
+    });
+
+    init();
+  </script>
+</body>
+</html>
