@@ -219,7 +219,7 @@
     ctx.drawImage(img, dx, dy, dw, dh);
   }
 
-  async function renderCard(){
+  async function renderCard(exportMode=false){
     const entry = state.current;
     const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
     const cssWidth = getCanvasCssWidth();
@@ -231,25 +231,45 @@
     canvas.style.height = cssHeight + 'px';
 
     ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,cssWidth,cssHeight); // прозрачный фон вокруг карточки
+    ctx.clearRect(0,0,cssWidth,cssHeight); // прозрачный фон вокруг карточки (если будет)
 
-    // Карточка со скруглением
-    const cardR = 0;
+    // Основа карточки: в предпросмотре можно со скруглением, при сохранении — строго прямоугольник (без прозрачных углов)
+    const cardR = exportMode ? 0 : 18;
     const bg = ctx.createLinearGradient(0,0,0,cssHeight);
     bg.addColorStop(0,'#fffafc'); bg.addColorStop(1,'#fff2f7');
-    ctx.fillStyle = bg; roundRectPath(ctx,0,0,cssWidth,cssHeight,cardR); ctx.fill();
 
-    ctx.save();
-    roundRectPath(ctx,0,0,cssWidth,cssHeight,cardR); ctx.clip();
-    ctx.globalAlpha = .65; ctx.fillStyle='rgba(255,214,234,.55)';
-    ctx.beginPath(); ctx.arc(cssWidth*.15, cssHeight*.13, cssWidth*.16, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle='rgba(255,240,246,.95)';
-    ctx.beginPath(); ctx.arc(cssWidth*.86, cssHeight*.12, cssWidth*.15, 0, Math.PI*2); ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.restore();
+    if (cardR > 0){
+      ctx.fillStyle = bg;
+      roundRectPath(ctx,0,0,cssWidth,cssHeight,cardR);
+      ctx.fill();
 
-    ctx.strokeStyle='rgba(216,94,146,.20)'; ctx.lineWidth=1.5;
-    roundRectPath(ctx,8,8,cssWidth-16,cssHeight-16,0); ctx.stroke();
+      ctx.save();
+      roundRectPath(ctx,0,0,cssWidth,cssHeight,cardR); ctx.clip();
+      ctx.globalAlpha = .65; ctx.fillStyle='rgba(255,214,234,.55)';
+      ctx.beginPath(); ctx.arc(cssWidth*.15, cssHeight*.13, cssWidth*.16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,240,246,.95)';
+      ctx.beginPath(); ctx.arc(cssWidth*.86, cssHeight*.12, cssWidth*.15, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      ctx.strokeStyle='rgba(216,94,146,.20)'; ctx.lineWidth=1.5;
+      roundRectPath(ctx,8,8,cssWidth-16,cssHeight-16,16); ctx.stroke();
+    } else {
+      // Экспорт: заполняем ВЕСЬ холст (никаких прозрачных углов -> никаких "чёрных" углов в просмотрщиках)
+      ctx.fillStyle = bg;
+      ctx.fillRect(0,0,cssWidth,cssHeight);
+
+      ctx.save();
+      ctx.globalAlpha = .65; ctx.fillStyle='rgba(255,214,234,.55)';
+      ctx.beginPath(); ctx.arc(cssWidth*.15, cssHeight*.13, cssWidth*.16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='rgba(255,240,246,.95)';
+      ctx.beginPath(); ctx.arc(cssWidth*.86, cssHeight*.12, cssWidth*.15, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.restore();
+
+      ctx.strokeStyle='rgba(216,94,146,.20)'; ctx.lineWidth=1.5;
+      ctx.strokeRect(8,8,cssWidth-16,cssHeight-16);
+    }
 
     // Фото автора (без белой подложки)
     const photoX = Math.round(cssWidth * .07);
@@ -273,39 +293,60 @@
     ctx.strokeStyle='rgba(216,94,146,.14)'; ctx.lineWidth=1;
     roundRectPath(ctx, photoX, photoY, photoW, photoH, 16); ctx.stroke();
 
-    // Блок цитаты
-    const quoteBoxX = Math.round(cssWidth * .07);
-    const quoteBoxY = Math.round(cssHeight * .52);
-    const quoteBoxW = cssWidth - quoteBoxX * 2;
+    // Блок цитаты: подложка ПОД РАЗМЕР КАЖДОЙ ЦИТАТЫ, автор строго под ней
+    const quoteAreaX = Math.round(cssWidth * .07);
+    const quoteAreaY = Math.round(cssHeight * .52);
+    const quoteAreaW = cssWidth - quoteAreaX * 2;
+
     const quoteFont = Math.max(17, Math.round(cssWidth * .048));
     const lineHeight = Math.round(quoteFont * 1.34);
-    const textX = cssWidth / 2;
-    const textY = quoteBoxY + 62;
-    const textW = quoteBoxW - 34;
+
+    const padX = 22;
+    const padTop = 54;   // место под “
+    const padBottom = 22;
 
     ctx.font = `500 ${quoteFont}px Lora, Georgia, serif`;
+    const textW = quoteAreaW - padX*2;
     const lines = wrapLines(ctx, entry?.quote || '...', textW);
-    const quoteBoxH = Math.max(Math.round(cssHeight * .18), 62 + (lines.length - 1) * lineHeight + 34);
+
+    // ширина подложки = ширина самой длинной строки + паддинги
+    let maxLineW = 0;
+    for (const ln of lines){
+      maxLineW = Math.max(maxLineW, ctx.measureText(ln).width);
+    }
+    const minBoxW = Math.min(quoteAreaW, Math.max(240, Math.round(cssWidth * .55)));
+    const boxW = Math.min(quoteAreaW, Math.max(minBoxW, Math.ceil(maxLineW + padX*2)));
+    const boxX = Math.round((cssWidth - boxW) / 2);
+
+    // высота подложки = строки + паддинги
+    const textBlockH = lines.length * lineHeight;
+    const boxH = Math.max(Math.round(cssHeight * .14), padTop + textBlockH + padBottom);
 
     ctx.save();
     ctx.shadowColor='rgba(125,70,100,.08)'; ctx.shadowBlur=18; ctx.shadowOffsetY=6;
     ctx.fillStyle='rgba(255,255,255,.92)';
-    roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18); ctx.fill();
+    roundRectPath(ctx, boxX, quoteAreaY, boxW, boxH, 18); ctx.fill();
     ctx.restore();
     ctx.strokeStyle='rgba(216,94,146,.12)'; ctx.lineWidth=1;
-    roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18); ctx.stroke();
+    roundRectPath(ctx, boxX, quoteAreaY, boxW, boxH, 18); ctx.stroke();
 
+    // Открывающая кавычка
     ctx.fillStyle='rgba(216,94,146,.22)';
     ctx.font=`700 ${Math.round(cssWidth*.16)}px Georgia, serif`;
     ctx.textAlign='left'; ctx.textBaseline='top';
-    ctx.fillText('“', quoteBoxX + 16, quoteBoxY + 4);
+    ctx.fillText('“', boxX + 16, quoteAreaY + 4);
 
+    // Текст цитаты
+    const textX = cssWidth / 2;
+    const textY = quoteAreaY + padTop + quoteFont; // baseline
     ctx.fillStyle='#302531';
     ctx.font=`500 ${quoteFont}px Lora, Georgia, serif`;
     ctx.textAlign='center'; ctx.textBaseline='alphabetic';
     drawLines(ctx, lines, textX, textY, lineHeight);
 
-    const authorY = Math.min(quoteBoxY + quoteBoxH + 36, cssHeight - 20);
+    // Автор строго под подложкой
+    const authorGap = 26;
+    const authorY = Math.min(quoteAreaY + boxH + authorGap, cssHeight - 18);
     ctx.fillStyle='rgba(108,92,105,.92)';
     ctx.font=`600 ${Math.max(11, Math.round(cssWidth*.028))}px Inter, sans-serif`;
     ctx.textAlign='center'; ctx.textBaseline='alphabetic';
@@ -314,23 +355,13 @@
 
   async function refresh(){
     pickRandom();
-    await renderCard();
+    await renderCard(false);
     setStatus(`Готово. Можете сохранить картинку.${state.current?.photo ? ' Фото: ' + state.current.photo : ''}`);
   }
 
-  function roundedBlobFromCanvas(sourceCanvas){
+  function pngBlobFromCanvas(sourceCanvas){
     return new Promise((resolve, reject) => {
-      const out = document.createElement('canvas');
-      out.width = sourceCanvas.width;
-      out.height = sourceCanvas.height;
-      const octx = out.getContext('2d', { alpha: true });
-      const dpr = sourceCanvas.width / (parseFloat(sourceCanvas.style.width) || sourceCanvas.width);
-      const cssW = sourceCanvas.width / dpr;
-      const cssH = sourceCanvas.height / dpr;
-      octx.setTransform(dpr,0,0,dpr,0,0);
-      octx.clearRect(0,0,cssW,cssH);
-      octx.drawImage(sourceCanvas, 0, 0, cssW, cssH);
-      out.toBlob(b => b ? resolve(b) : reject(new Error('Не удалось создать PNG')), 'image/png');
+      sourceCanvas.toBlob(b => b ? resolve(b) : reject(new Error('Не удалось создать PNG')), 'image/png');
     });
   }
 
@@ -338,9 +369,13 @@
     if (!state.current) return;
     setBusy(true); setStatus('Готовим изображение...');
     try {
-      await renderCard();
-      const blob = await roundedBlobFromCanvas(canvas);
-      const safeAuthor = (state.current.author || 'author').replace(/[^\p{L}\p{N}]+/gu,'-').replace(/^-+|-+$/g,'') || 'author';
+      // При сохранении рендерим БЕЗ скругления внешних углов
+      await renderCard(true);
+      const blob = await pngBlobFromCanvas(canvas);
+
+      const safeAuthor = (state.current.author || 'author')
+        .replace(/[^\p{L}\p{N}]+/gu,'-')
+        .replace(/^-+|-+$/g,'') || 'author';
       const fileName = `quote-${safeAuthor}-${Date.now()}.png`;
       const file = new File([blob], fileName, { type: 'image/png' });
 
@@ -356,6 +391,9 @@
         setTimeout(() => URL.revokeObjectURL(url), 2000);
         setStatus('PNG скачан.');
       }
+
+      // Вернём предпросмотр (со скруглением)
+      await renderCard(false);
     } catch (e) {
       console.error(e);
       setStatus(e.message || 'Не получилось сохранить изображение.');
@@ -370,7 +408,7 @@
     try { await refresh(); } finally { setBusy(false); }
   });
   saveBtn.addEventListener('click', saveImage);
-  window.addEventListener('resize', () => { if (state.current) renderCard(); });
+  window.addEventListener('resize', () => { if (state.current) renderCard(false); });
 
   (async function init(){
     setBusy(true);
@@ -382,7 +420,7 @@
       setStatus(e.message || 'Ошибка загрузки цитат.');
       // Пустая карточка-заглушка без фолбэка, чтобы было видно интерфейс
       state.current = { quote: 'Добавьте строки в citaty.txt в формате: Текст (Автор) (photo.jpg)', author: 'Подсказка', photo: '' };
-      await renderCard();
+      await renderCard(false);
     } finally {
       setBusy(false);
     }
