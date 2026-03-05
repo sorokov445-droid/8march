@@ -234,7 +234,7 @@
     ctx.clearRect(0,0,cssWidth,cssHeight); // прозрачный фон вокруг карточки
 
     // Карточка со скруглением
-    const cardR = 18;
+    const cardR = 0;
     const bg = ctx.createLinearGradient(0,0,0,cssHeight);
     bg.addColorStop(0,'#fffafc'); bg.addColorStop(1,'#fff2f7');
     ctx.fillStyle = bg; roundRectPath(ctx,0,0,cssWidth,cssHeight,cardR); ctx.fill();
@@ -249,7 +249,7 @@
     ctx.restore();
 
     ctx.strokeStyle='rgba(216,94,146,.20)'; ctx.lineWidth=1.5;
-    roundRectPath(ctx,8,8,cssWidth-16,cssHeight-16,16); ctx.stroke();
+    roundRectPath(ctx,8,8,cssWidth-16,cssHeight-16,0); ctx.stroke();
 
     // Фото автора (без белой подложки)
     const photoX = Math.round(cssWidth * .07);
@@ -329,8 +329,6 @@
       const cssH = sourceCanvas.height / dpr;
       octx.setTransform(dpr,0,0,dpr,0,0);
       octx.clearRect(0,0,cssW,cssH);
-      roundRectPath(octx, 0, 0, cssW, cssH, 18);
-      octx.clip();
       octx.drawImage(sourceCanvas, 0, 0, cssW, cssH);
       out.toBlob(b => b ? resolve(b) : reject(new Error('Не удалось создать PNG')), 'image/png');
     });
