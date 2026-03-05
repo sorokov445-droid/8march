@@ -46,8 +46,8 @@
   <p class="hint">Формат строки: <i>текст цитаты (Автор) (photo.jpg)</i></p>
 </div>
 <script>
-const MANUAL_X_OFFSET = 0; // если вдруг потребуется тонкая подстройка, меняйте это число
-const state = { entries: [], current:null, lastIndex:-1, busy:false, imageCache:new Map(), xOffset: MANUAL_X_OFFSET };
+const MANUAL_X_OFFSET = 0; // если понадобится тихая подстройка, меняйте тут на -1 / 1 / 2
+const state = { entries: [], current:null, lastIndex:-1, busy:false, imageCache:new Map() };
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
 const previewCard = canvas.closest('.card');
@@ -65,7 +65,6 @@ const fallbackEntries = [
 
 function setStatus(t){ statusEl.textContent = t; }
 function setBusy(v){ state.busy=v; newQuoteBtn.disabled=v; saveBtn.disabled=v; }
-function updateOffsetUi(){} px`; }
 function normalizePhotoFile(name){ const t=String(name||'').trim(); return /\.[a-z0-9]{2,5}$/i.test(t) ? t : (t ? t+'.jpg' : ''); }
 function parseLine(line){ const m = line.match(/^(.*)\s*\(([^()]+)\)\s*\(([^()]+)\)\s*$/); return m ? {quote:m[1].trim(), author:m[2].trim(), photo:normalizePhotoFile(m[3])} : null; }
 
@@ -104,7 +103,6 @@ function wrapTextLines(c, text, maxWidth){
   if(line) lines.push(line);
   return lines.length ? lines : [''];
 }
-
 function drawLines(c, lines, x, y, lineHeight){ lines.forEach((ln,i)=>c.fillText(ln, x, y + i*lineHeight)); }
 
 function createImageLoader(src){ return new Promise(resolve => { const img = new Image(); img.onload=()=>resolve(img); img.onerror=()=>resolve(null); img.src=src; }); }
@@ -114,12 +112,9 @@ function drawPhotoCover(img,x,y,w,h){ const iw=img.naturalWidth||img.width, ih=i
 async function renderCard(){
   const entry = state.current || {quote:'...',author:'Автор',photo:''};
   const DPR = Math.max(1, Math.min(window.devicePixelRatio||1, 2));
-  // Берем реальную ширину контейнера, а не window.innerWidth, иначе на мобильных
-  // canvas может стать шире внутренней области карточки и визуально 'съехать' вбок.
-  const containerWidth = Math.floor((previewCard?.clientWidth || canvas.parentElement?.clientWidth || window.innerWidth) - 0);
+  const containerWidth = Math.floor(previewCard?.clientWidth || canvas.parentElement?.clientWidth || window.innerWidth);
   const cssWidth = Math.min(520, Math.max(300, containerWidth));
 
-  // 1) Сначала считаем текст и нужную высоту, чтобы фон/рамка не "уезжали" вниз на коротких цитатах
   const quoteFont = Math.max(17, Math.round(cssWidth * .048));
   const lineHeight = Math.round(quoteFont * 1.34);
   ctx.setTransform(1,0,0,1,0,0);
@@ -136,16 +131,15 @@ async function renderCard(){
   const quoteBoxY = Math.round(baseHeight * .52);
   const quoteBoxH = Math.max(Math.round(baseHeight * .18), 62 + (lines.length - 1) * lineHeight + 34);
   const authorY = quoteBoxY + quoteBoxH + 36;
-  const neededHeight = authorY + 56; // нижний отступ под имя автора
+  const neededHeight = authorY + 56;
   const cssHeight = Math.max(Math.round(cssWidth * 1.34), neededHeight);
 
   canvas.width = Math.round(cssWidth * DPR); canvas.height = Math.round(cssHeight * DPR);
   canvas.style.width = cssWidth+'px'; canvas.style.height = cssHeight+'px';
   ctx.setTransform(DPR,0,0,DPR,0,0); ctx.clearRect(0,0,cssWidth,cssHeight);
 
-  const ox = Number(state.xOffset||0);
   ctx.save();
-  ctx.translate(ox, 0);
+  ctx.translate(MANUAL_X_OFFSET, 0);
 
   const bg = ctx.createLinearGradient(0,0,0,cssHeight); bg.addColorStop(0,'#fffafc'); bg.addColorStop(1,'#fff2f7');
   ctx.fillStyle = bg; roundRectPath(ctx,0,0,cssWidth,cssHeight,18); ctx.fill();
@@ -154,7 +148,6 @@ async function renderCard(){
   ctx.strokeStyle='rgba(216,94,146,.20)'; ctx.lineWidth=1.5; roundRectPath(ctx,8,8,cssWidth-16,cssHeight-16,16); ctx.stroke();
 
   const photoX = Math.round(cssWidth * .07), photoY = photoTop, photoW = cssWidth - photoX*2;
-  // светлая подложка именно под фото, чтобы убрать темные углы от альфа-краев
   ctx.fillStyle = '#f7f3f5'; roundRectPath(ctx, photoX, photoY, photoW, photoH, 16); ctx.fill();
   const img = await getAuthorImage(entry.photo);
   ctx.save(); roundRectPath(ctx, photoX, photoY, photoW, photoH, 16); ctx.clip();
@@ -169,10 +162,8 @@ async function renderCard(){
   ctx.restore();
   ctx.strokeStyle='rgba(216,94,146,.14)'; ctx.lineWidth=1; roundRectPath(ctx, photoX, photoY, photoW, photoH, 16); ctx.stroke();
 
-  // Текст и динамическая подложка
   const textX = cssWidth / 2;
   const textY = quoteBoxY + 62;
-
   ctx.save(); ctx.shadowColor='rgba(125,70,100,.08)'; ctx.shadowBlur=18; ctx.shadowOffsetY=6; ctx.fillStyle='rgba(255,255,255,.92)';
   roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18); ctx.fill(); ctx.restore();
   ctx.strokeStyle='rgba(216,94,146,.12)'; ctx.lineWidth=1; roundRectPath(ctx, quoteBoxX, quoteBoxY, quoteBoxW, quoteBoxH, 18); ctx.stroke();
@@ -181,7 +172,6 @@ async function renderCard(){
   ctx.fillStyle='#302531'; ctx.font=`500 ${quoteFont}px Lora, Georgia, serif`; ctx.textAlign='center'; ctx.textBaseline='alphabetic';
   drawLines(ctx, lines, textX, textY, lineHeight);
 
-  // Имя автора всегда сразу под белой подложкой
   ctx.fillStyle='rgba(108,92,105,.92)'; ctx.font=`600 ${Math.max(11, Math.round(cssWidth*.028))}px Inter, sans-serif`; ctx.textAlign='center';
   ctx.fillText(entry.author || 'Автор', cssWidth/2, Math.min(authorY, cssHeight - 20));
   ctx.restore();
@@ -199,12 +189,15 @@ async function saveImage(){
     const file = new File([blob], fileName, {type:'image/png'});
     const canShare = typeof navigator.share === 'function' && navigator.canShare && navigator.canShare({files:[file]});
     if(canShare){ await navigator.share({files:[file], title:'Цитата'}); setStatus('Изображение отправлено через меню «Поделиться».'); }
-    else { const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=fileName; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url), 2000); setStatus('PNG скачан.'); }
+    else {
+      const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=fileName; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url), 2000); setStatus('PNG скачан.');
+    }
   } catch(e){ console.error(e); setStatus('Не получилось сохранить изображение. Проверьте фото и https.'); }
   finally { setBusy(false); }
 }
 
-async function init(){ updateOffsetUi(); setBusy(true); await loadEntries(); await refreshEntryAndRender(); setBusy(false); }
+async function init(){ setBusy(true); await loadEntries(); await refreshEntryAndRender(); setBusy(false); }
 newQuoteBtn.addEventListener('click', async ()=>{ if(state.busy) return; setBusy(true); try{ await refreshEntryAndRender(); } finally { setBusy(false); } });
 saveBtn.addEventListener('click', saveImage);
 window.addEventListener('resize', ()=>{ renderCard(); });
