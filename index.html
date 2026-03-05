@@ -46,7 +46,7 @@
   <p class="hint">Формат строки: <i>текст цитаты (Автор) (photo.jpg)</i></p>
 </div>
 <script>
-const MANUAL_X_OFFSET = -2; // если понадобится тихая подстройка, меняйте тут на -1 / 1 / 2
+const MANUAL_X_OFFSET = 2; // если понадобится тихая подстройка, меняйте тут на -1 / 1 / 2
 const state = { entries: [], current:null, lastIndex:-1, busy:false, imageCache:new Map() };
 const canvas = document.getElementById('previewCanvas');
 const ctx = canvas.getContext('2d');
