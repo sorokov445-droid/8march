@@ -135,14 +135,6 @@
     <img id="photoLoader" class="hidden" alt="" crossorigin="anonymous" />
   </div>
 
-  <script>
-    const FALLBACK_ITEMS = [
-      { quote: 'Счастье приходит изнутри, а не от других.', author: 'Агния Барто', photo: 'Barto.jpg' },
-      { quote: 'У надежды глаза так же велики, как и у страха.', author: 'Зинаида Гиппиус', photo: 'Gippius.jpg' },
-      { quote: 'Археолог — лучший муж, который только может быть у женщины.', author: 'Агата Кристи', photo: 'Kristi.jpg' },
-      { quote: 'Как ни странно, порою ошибки человеческие приносят человеку больше пользы, чем поступки продуманные.', author: 'Надежда Тэффи', photo: 'Teffi.jpg' },
-      { quote: 'Очень трудно стать взрослым, когда внутри всё ещё живёт ребёнок.', author: 'Дж. К. Роулинг', photo: 'Rowling.jpg' }
-    ];
 
     const state = {
       items: [],
@@ -193,12 +185,10 @@
         state.items = parsed;
       } catch (e) {
         console.warn(e);
-        state.items = [...FALLBACK_ITEMS];
       }
     }
 
     function pickRandomItem() {
-      const arr = state.items.length ? state.items : FALLBACK_ITEMS;
       let idx = 0;
       if (arr.length > 1) {
         do idx = Math.floor(Math.random() * arr.length);
